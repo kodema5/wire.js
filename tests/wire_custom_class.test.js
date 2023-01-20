@@ -1,6 +1,4 @@
-import { assert } from "https://deno.land/std@0.157.0/testing/asserts.ts";
-import { wire } from '../mod.js'
-
+import { assert, wire } from './deps.js'
 
 class Cls {
     constructor() {
@@ -13,11 +11,24 @@ class Cls {
         return el ? [el] : []
     }
 
+    has(a) {
+        return Object.values(this.children).indexOf(a)>=0
+    }
+
+
     add() {
         Array.from(arguments)
         .flat()
         .forEach(n => {
             this.children[n] = new Cls()
+        })
+    }
+
+    remove() {
+        Array.from(arguments)
+        .flat()
+        .forEach(n => {
+            delete this.children[n]
         })
     }
 
@@ -39,59 +50,74 @@ class Cls {
     }
 }
 
-
-
-
-
-Deno.test('wire custom class', () => {
-
+Deno.test('wiring custom class', () => {
     let root = new Cls()
-    root.add('foo', 'bar')
+    root.add('foo', 'bar', 'baz')
 
     let w = wire(
         root,
         {
             '.': {
-                '#id': 'root',
+                _id: 'root',
                 hi: function(v) {
-                    this.foo.notify('hello', v)
+                    // calls
+                    this.trigger_('foo-hello', v)
                 }
             },
 
             'foo': {
-                '#id': 'foo',
-                hello: function(v) {
-                    this.foo.msg = 'hello ' + v
-                    this.bar.notify('hello', v)
+                _id: 'foo',
+                'foo-hello': function(v) {
+                    this.foo.msg = 'foo ' + v
+                    if (this.bar) {
+                        this.bar.notify('hello', v)
+                    }
                 }
 
             },
 
             'bar': {
-                '#id': 'bar',
-                hello: function(v) {
-                    this.bar.msg = 'hello ' + v
+                _id: 'bar',
+                'hello': function(v) {
+                    this.bar.msg = 'bar ' + v
                 }
-            }
+            },
+
+            'baz': {
+                _id: 'baz',
+                'hello': function(v) {
+                    this.baz.msg = 'baz ' + v
+                }
+            },
         },
         {
+            thisObj: {},
             queryFnName:'query',
             listenFnName:'listen',
             unlistenFnName:'unlisten',
-        }
-
+            notifyFnName:'notify',
+            validator: (el) => root.has(el),
+        },
     )
 
-    w.root.notify('hi', 'world')
-    assert(w.foo.msg === 'hello world')
-    assert(w.bar.msg === 'hello world')
+    // has all nodes
+    assert(w.this.root && w.this.foo && w.this.bar)
 
+    // supposed an event triggered in root
+    //
+    w.nodes.root.notify('hi', 'world')
+    assert(w.this.foo.msg === 'foo world')
+    assert(w.this.bar.msg === 'bar world')
 
-    w.bar.msg = 'deleted'
-    w['#wires'].delete(w.bar)
+    // clean-up removed element
+    //
+    root.remove('bar')
+    w.clean()
+    assert(!w.this.bar)
 
-    w.root.notify('hi', 'world')
-    assert(w.foo.msg === 'hello world')
-    assert(w.bar.msg === 'deleted')
+    // to remove all dependencies
+    //
+    w.delete()
+    w = null
+
 })
-

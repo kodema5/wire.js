@@ -1,6 +1,4 @@
-import { parseHTML } from "https://esm.sh/linkedom";
-import { assert } from "https://deno.land/std@0.157.0/testing/asserts.ts";
-import { wire } from '../mod.js'
+import { assert, wire, parseHTML } from './deps.js'
 
 const {
     window,
@@ -22,25 +20,24 @@ const {
     </body>
   </html>`)
 
-
-Deno.test('wire html elements', () => {
+  Deno.test('wire html elements', () => {
 
     let w = wire(
         document.body,
         {
             '.': {
-                '#id': 'root',
+                _id: 'root',
 
                 hi: function(ev) {
                     var me = this
                     me.rootMsg = 'hi ' + ev.detail
                     var ev = new CustomEvent('hello', {detail:ev.detail})
-                    w.button.dispatchEvent(ev)
+                    me.button.dispatchEvent(ev)
                 },
             },
 
             'button': {
-                '#id': 'button',
+                _id: 'button',
 
                 hello: function(ev) {
                     var me = this
@@ -55,18 +52,18 @@ Deno.test('wire html elements', () => {
 
 
     var ev = new CustomEvent('hi', {detail:'world'})
-    w.root.dispatchEvent(ev)
-    assert(w.rootMsg === 'hi world')
-    assert(w.buttonMsg === 'hello world')
+    document.body.dispatchEvent(ev)
+    let ctx = w.this
+    assert(ctx.rootMsg === 'hi world')
+    assert(ctx.buttonMsg === 'hello world')
 
 
-    w.buttonMsg = 'deleted'
-    w["#wires"].delete(w.button)
+    ctx.buttonMsg = 'deleted'
+    w.dewire(ctx.button)
 
     var ev = new CustomEvent('hi', {detail:'world'})
-    w.root.dispatchEvent(ev)
-    assert(w.rootMsg === 'hi world')
-    assert(w.buttonMsg === 'deleted')
-
+    ctx.root.dispatchEvent(ev)
+    assert(ctx.rootMsg === 'hi world')
+    assert(ctx.buttonMsg === 'deleted')
 })
 

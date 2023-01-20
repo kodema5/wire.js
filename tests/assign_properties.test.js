@@ -1,5 +1,4 @@
-import { assert } from "https://deno.land/std@0.157.0/testing/asserts.ts";
-import { assign } from '../mod.js'
+import { assert, assign } from './deps.js'
 
 Deno.test('assign properties', () => {
     let obj = { a:100 }
