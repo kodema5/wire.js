@@ -44,9 +44,9 @@ class Cls {
         arr.splice(arr.indexOf(fn), 1)
     }
 
-    notify(str, val) {
-        if (!this.events[str]) return
-        this.events[str].forEach(f => f(val))
+    notify({type, detail} = {}) {
+        if (!this.events[type]) return
+        this.events[type].forEach(f => f(detail))
     }
 }
 
@@ -60,8 +60,13 @@ Deno.test('wiring custom class', () => {
             '.': {
                 _id: 'root',
                 hi: function(v) {
-                    // calls
-                    this.trigger_('foo-hello', v)
+
+                    // simulate a custom event
+                    let ev = {
+                        type: 'foo-hello',
+                        detail: v
+                    }
+                    this.trigger_(ev)
                 }
             },
 
@@ -70,7 +75,7 @@ Deno.test('wiring custom class', () => {
                 'foo-hello': function(v) {
                     this.foo.msg = 'foo ' + v
                     if (this.bar) {
-                        this.bar.notify('hello', v)
+                        this.bar.notify({type:'hello', detail:v})
                     }
                 }
 
@@ -105,7 +110,7 @@ Deno.test('wiring custom class', () => {
 
     // supposed an event triggered in root
     //
-    w.nodes.root.notify('hi', 'world')
+    w.nodes.root.notify({type:'hi', detail:'world'})
     assert(w.this.foo.msg === 'foo world')
     assert(w.this.bar.msg === 'bar world')
 

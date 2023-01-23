@@ -174,15 +174,20 @@ export let Circuit = class {
 
     // triggers events of specific name
     //
-    trigger(eventName, event) {
+    trigger(evt) {
+        if (!evt || !evt.type) {
+            throw new Error('invalid event')
+        }
+
         let me = this
         let fn = me.funcs.notifyFnName
 
+        let eventType = evt.type
         me
-        .trace(eventName)
+        .trace(eventType)
         .forEach(el => {
             if (!el[fn]) return
-            el[fn].call(el, eventName, event)
+            el[fn].call(el, evt)
         })
     }
 }
