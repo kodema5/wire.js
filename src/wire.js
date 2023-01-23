@@ -6,7 +6,7 @@ export let Circuit = class {
 
     constructor(
         rootEl,
-        eventConfig,
+        eventConfigs,
         {
             thisObj = {},
             queryFnName = 'querySelectorAll',
@@ -32,8 +32,8 @@ export let Circuit = class {
         //
         me.this = new Proxy(thisObj, {
             get(_, name) {
-                if (name==='circuit_') return me
-                if (name==='trigger_') return me.trigger.bind(me)
+                if (name==='circuit_' || name==='wire_') return me
+                if (name==='trigger_' || name==='notify_') return me.trigger.bind(me)
 
                 return me.nodes[name]
                     || Reflect.get(...arguments)
@@ -49,46 +49,67 @@ export let Circuit = class {
             },
         })
 
-        Object.entries(eventConfig).forEach(([qry, events]) => {
-            // get config by #... keys
-            //
-            let cfg = {}
-            events = Object.fromEntries(
-                Object
-                .entries(events)
-                .filter( ([name, val]) => {
-                    let isConfig = name[0]==='_'
-                    if (isConfig) {
-                        let k = name.slice(1)
-                        cfg[k] = val
-                        return false
-                    }
-                    return true
+        // initialize event-configs
+        //
+        Object.entries(eventConfigs).forEach(([qry, eventConfig]) => {
+
+            if (typeof eventConfig === 'function') {
+                let eventConfigFn = eventConfig
+
+                me.#getElems(qry).forEach( (el, i, arr) => {
+                    let a = eventConfigFn.call(me.this, el, i, arr)
+                    let { cfg, nodeId } = me.#getCfg(a)
+
+                    me.wire(el, cfg, nodeId)
                 })
-            )
+            } else {
+                let { cfg, nodeId } = me.#getCfg(eventConfig)
 
-            // ensure no conflict
-            //
-            let nodeId = cfg.id
-            let isConflict = me.this[nodeId]
-                || typeof me.this[nodeId] === 'function'
-            if (isConflict) {
-                throw new Error(`conflicting nodes "${nodeId}"`)
+                me.#getElems(qry).forEach( (el, i, arr) => {
+                    me.wire(el, cfg, nodeId)
+                })
+
             }
-
-            // get elements
-            //
-            let isRoot = qry==='.'
-            let elems = isRoot
-                ? [me.rootEl]
-                : [...(me.rootEl[queryFnName](qry))]
-
-            // attach events to element
-            //
-            elems.forEach( el => {
-                me.wire(el, events, nodeId)
-            })
         })
+    }
+
+    #getElems(qry) {
+        let me = this
+        let queryFnName = me.funcs.queryFnName
+        let isRoot = qry==='.'
+        return isRoot
+            ? [me.rootEl]
+            : [...(me.rootEl[queryFnName](qry))]
+    }
+
+    #getCfg(eventConfig) {
+        let me = this
+        let meta = {}
+        let cfg = Object.fromEntries(
+            Object
+            .entries(eventConfig)
+            .filter( ([name, val]) => {
+                let isConfig = name[0]==='_'
+                if (isConfig) {
+                    let k = name.slice(1)
+                    meta[k] = val
+                    return false
+                }
+                return true
+            })
+        )
+
+        let nodeId = meta.id
+        let isConflict = me.this[nodeId]
+            || typeof me.this[nodeId] === 'function'
+        if (isConflict) {
+            throw new Error(`conflicting nodes "${nodeId}"`)
+        }
+
+        return {
+            cfg,
+            nodeId,
+        }
     }
 
     // counter for unnamed nodeId

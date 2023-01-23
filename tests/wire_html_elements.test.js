@@ -17,6 +17,10 @@ const {
             <input name="user">
             <button id='button'>Submit</button>
         </form>
+        <select>
+            <option>foo</option>
+            <option>bar</option>
+        </select>
     </body>
   </html>`)
 
@@ -45,6 +49,13 @@ const {
                 }
             },
 
+            // for dynamically generated config for each element
+            //
+            'option': function(el, i) {
+                return {
+                    _id: `option_${i}`
+                }
+            }
 
         },
         // document.body, // if to assign other object
@@ -53,17 +64,20 @@ const {
 
     var ev = new CustomEvent('hi', {detail:'world'})
     document.body.dispatchEvent(ev)
-    let ctx = w.this
-    assert(ctx.rootMsg === 'hi world')
-    assert(ctx.buttonMsg === 'hello world')
+
+    assert(w.this.rootMsg === 'hi world')
+    assert(w.this.buttonMsg === 'hello world')
 
 
-    ctx.buttonMsg = 'deleted'
-    w.dewire(ctx.button)
+    w.this.buttonMsg = 'deleted'
+    w.dewire(w.this.button)
 
     var ev = new CustomEvent('hi', {detail:'world'})
-    ctx.root.dispatchEvent(ev)
-    assert(ctx.rootMsg === 'hi world')
-    assert(ctx.buttonMsg === 'deleted')
+    w.this.root.dispatchEvent(ev)
+    assert(w.this.rootMsg === 'hi world')
+    assert(w.this.buttonMsg === 'deleted')
+
+    assert(Object.keys(w.nodes).includes('option_0'))
+    assert(Object.keys(w.nodes).includes('option_1'))
 })
 
