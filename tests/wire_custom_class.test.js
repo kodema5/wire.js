@@ -66,7 +66,7 @@ Deno.test('wiring custom class', () => {
                         type: 'foo-hello',
                         detail: v
                     }
-                    this.trigger_(ev)
+                    this.fire_(ev)
                 }
             },
 

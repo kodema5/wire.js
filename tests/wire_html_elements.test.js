@@ -77,6 +77,12 @@ const {
     assert(w.this.rootMsg === 'hi world')
     assert(w.this.buttonMsg === 'deleted')
 
+    // skip root-el
+    //
+    var ev = new CustomEvent('hi', {detail:'xxx'})
+    w.fire(ev, {isSkipRootEl:true})
+    assert(w.this.rootMsg !== 'hi xxx')
+
     assert(Object.keys(w.nodes).includes('option_0'))
     assert(Object.keys(w.nodes).includes('option_1'))
 })

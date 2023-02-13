@@ -32,8 +32,8 @@ export let Circuit = class {
         //
         me.this = new Proxy(thisObj, {
             get(_, name) {
-                if (name==='circuit_' || name==='wire_') return me
-                if (name==='trigger_' || name==='notify_') return me.trigger.bind(me)
+                if (name==='top_') return me
+                if (name==='fire_') return me.fire.bind(me)
 
                 return me.nodes[name]
                     || Reflect.get(...arguments)
@@ -179,14 +179,20 @@ export let Circuit = class {
 
     // get nodes which has eventName
     //
-    trace(eventName) {
+    nodesThatListenTo(eventName,{
+        isSkipRootEl=false,
+    } = {}) {
+
         let me = this
         let wm = me.wires
 
         return Object
             .values(me.nodes)
             .filter(el => {
-                if (!wm.has(el)) return
+                if (
+                    !wm.has(el)
+                    || isSkipRootEl && el===me.rootEl
+                ) return
 
                 return wm.get(el)
                     .find( ([name,_]) => name===eventName)
@@ -195,7 +201,9 @@ export let Circuit = class {
 
     // triggers events of specific name
     //
-    trigger(evt) {
+    fire(evt, {
+        isSkipRootEl=false,
+    } = {}) {
         if (!evt || !evt.type) {
             throw new Error('invalid event')
         }
@@ -205,7 +213,7 @@ export let Circuit = class {
 
         let eventType = evt.type
         me
-        .trace(eventType)
+        .nodesThatListenTo(eventType, { isSkipRootEl })
         .forEach(el => {
             if (!el[fn]) return
             el[fn].call(el, evt)
