@@ -32,8 +32,8 @@ export let Circuit = class {
         //
         me.this = new Proxy(thisObj, {
             get(_, name) {
-                if (name==='top_') return me
-                if (name==='fire_') return me.fire.bind(me)
+                if (name === 'top_' && !('top_' in thisObj)) return me
+                if (name === 'fire_' && !('fire_' in thisObj)) return me.fire.bind(me)
 
                 return me.nodes[name]
                     || Reflect.get(...arguments)
