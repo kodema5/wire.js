@@ -35,12 +35,12 @@ export let Circuit = class {
                 if (name === 'top_' && !('top_' in thisObj)) return me
                 if (name === 'fire_' && !('fire_' in thisObj)) return me.fire.bind(me)
 
-                return me.nodes[name]
+                return me.nodes && me.nodes[name]
                     || Reflect.get(...arguments)
             },
 
             deleteProperty(_, name) {
-                if (!me.nodes[name]) {
+                if (!me.nodes || !me.nodes[name]) {
                     return Reflect.deleteProperty(...arguments)
                 }
                 let el = me.nodes[name]
